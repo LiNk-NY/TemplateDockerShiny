@@ -1,23 +1,23 @@
-# ARG 
+FROM bioconductor/bioconductor_docker:devel
 
-FROM bioconductor/bioconductor_docker:RELEASE_3_19
+ENV R_REMOTES_NO_ERRORS_FROM_WARNINGS=true
+ENV CRAN='https://packagemanager.posit.co/cran/__linux__/noble/latest'
 
-ENV SHINY_INPUT_DIR="/shiny_input"
-ENV SHINY_OUTPUT_DIR="/shiny_output"
+WORKDIR /home/rstudio
 
-# install Bioc
-RUN Rscript -e "options(repos = c(CRAN = 'https://cran.r-project.org')); install.packages('BiocManager')" && \
-    Rscript -e "BiocManager::install(ask=FALSE)" && \
-    # install the package itself
-    Rscript -e "BiocManager::install('csoneson/templateDockerShinyPkg')"
+COPY DESCRIPTION .
 
-USER root
+RUN Rscript -e "BiocManager::install(update = TRUE, ask = FALSE); remotes::install_deps(dependencies = TRUE, repos = BiocManager::repositories())"
 
-RUN mkdir -p /shiny_input /shiny_output
-RUN chown rstudio:rstudio /shiny_input /shiny_output
+COPY . .
+
+RUN Rscript -e "remotes::install_local(dependencies=TRUE, repos = BiocManager::repositories())"
+
+RUN chown -R rstudio:rstudio /home/rstudio
+
 USER rstudio
 
-ADD app_setup.R /app_setup.R
-
 EXPOSE 3838
-CMD Rscript /app_setup.R
+
+CMD ["Rscript", "app.R"]
+

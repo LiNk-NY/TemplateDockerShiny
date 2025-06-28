@@ -12,23 +12,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/checkout@v4
           
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        
-      - name: Login to Quay IO
-        uses: docker/login-action@v2
-        with:
-          registry: quay.io
-          username: [YOUR_QUAY_USERNAME]
-          password: ${{ secrets.QUAY_OAUTH_TOKEN }}
-    
-      - name: Build docker image and push to quay.io
-        uses: docker/build-push-action@v4
-        with:
-          push: true
-          tags: quay.io/[YOUR_QUAY_USERNAME]/[YOUR_QUAY_REPO_NAME]:${{ github.event.release.tag_name }}
+      - name: Register repo name
+        if: ${{ github.event_name != 'pull_request' }}
+        id: reg_repo_name
+        run: |
+          echo CONT_IMG_NAME=$(echo ${{ github.event.repository.name }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
 
+      - name: Login to Docker Hub
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker
+        if: ${{ success() && github.event_name != 'pull_request' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./inst/docker/pkg/Dockerfile
+          push: true
+          tags: >
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CONT_IMG_NAME }}:latest,
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CONT_IMG_NAME }}:devel
 
