@@ -37,7 +37,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./inst/docker/pkg/Dockerfile
+          file: ./Dockerfile
           push: ${{ github.ref == 'refs/heads/devel' }}
           tags: >
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CONT_IMG_NAME }}:latest,
